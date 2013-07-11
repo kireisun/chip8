@@ -1,10 +1,9 @@
 //#include OpenGL graphics and input libraries
-#include <iostream>
 #include "cpuEmu.h" // my CPU core implementation
+#include <ctime>
+#include <cstdlib>
 
 chip8 myChip8;
-
-using namespace std;
 
 int main(int argc, char **argv)
 {
@@ -34,7 +33,7 @@ int main(int argc, char **argv)
         // emulate one cycle
         myChip8.emulateCycle();
 
-        // if the draw flag is set, eupdate the screen
+        // if the draw flag is set, update the screen
         if(myChip8.drawFlag)
             drawGraphics();
 
