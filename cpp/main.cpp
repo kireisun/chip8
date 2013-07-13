@@ -1,5 +1,6 @@
 //#include OpenGL graphics and input libraries
 #include "cpuEmu.h" // my CPU core implementation
+#include "fonts.h" // include fonts
 #include <ctime>
 #include <cstdlib>
 
@@ -7,17 +8,18 @@ chip8 myChip8;
 
 int main(int argc, char **argv)
 {
-    unsigned short opcode;
-    unsigned char memory[4096];
-    unsigned char V[16];
-    unsigned short I;
-    unsigned short pc;
-    unsigned char gfx[64 * 32];
-    unsigned char delay_timer;
-    unsigned char sound_timer;
-    unsigned short my_stack[16];
-    unsigned short sp;
-    unsigned char keyboard[16];
+    uint16_t opcode;
+    uint8_t memory[4096];
+    uint8_t V[16];
+    uint16_t I;
+    uint16_t pc;
+    uint8_t gfx[64 * 32];
+    uint8_t delay_timer;
+    uint8_t sound_timer;
+    uint16_t my_stack[16];
+    uint16_t sp;
+    uint8_t keyboard[16];
+
     // set up render system and register input callbacks
 
     setupGraphics();
@@ -25,7 +27,7 @@ int main(int argc, char **argv)
 
     // initialize the chip8 system and load the game into memory
     myChip8.initialize()
-    myChip8.loadGame("pong")
+    myChip8.loadGame()
 
     // emulation loop
     for(;;)
@@ -33,7 +35,7 @@ int main(int argc, char **argv)
         // emulate one cycle
         myChip8.emulateCycle();
 
-        // if the draw flag is set, update the screen
+        // if the draw flag is set, eupdate the screen
         if(myChip8.drawFlag)
             drawGraphics();
 

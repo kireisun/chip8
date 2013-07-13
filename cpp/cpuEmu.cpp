@@ -1,10 +1,14 @@
 
+#include <cstring>
+
 void chip8::initialize()
 {
     pc     = 0x200; // pc starts at 0x200
     opcode = 0;     // reset current opcode
     I      = 0;     // reset index register
     sp     = 0;     // reset stack pointer
+    uint8_t* memory_p = &memory[fontBase];
+    uint8_t* font_p = &font[0];
 
     // clear register V0 - VF
 
@@ -36,9 +40,15 @@ void chip8::initialize()
     {
         memory[i] = 0;
     }
-}
+
     // load fontset
+
+    memcpy(memory_p, font_p, 5*16);
+
     // reset timers
+}
+
+
 void chip8::emulateCycle()
 {
     // fetch opcode
@@ -76,7 +86,7 @@ void chip8::emulateCycle()
             ++sp;
             pc = opcode & 0x0FFF;
             break;
-        case 0x3000: // 3XNN: compare Vx with NN and if they match skips the next instruction
+        case 0x3000: // 3XNN: compare VX with NN and if they match skips the next instruction
             if(V[opcode & 0x0F00] == opcode & 0x00FF)
             {
                 pc += 4;
@@ -85,7 +95,7 @@ void chip8::emulateCycle()
             else
             pc += 2;
             break;
-        case 0x4000: // 4XNN: skips the next instruction if Vx != NN
+        case 0x4000: // 4XNN: skips the next instruction if VX != NN
             if(V[opcode & 0x0F00] != opcode & 0x00FF)
             {
                 pc += 4;
@@ -94,7 +104,7 @@ void chip8::emulateCycle()
             else
             pc += 2;
             break;
-        case 0x5000: // 5XY0: skips the next instruction if Vx == Vy
+        case 0x5000: // 5XY0: skips the next instruction if VX == VY
             if(V[opcode & 0x0F00] == V[opcode & 0x00F0])
             {
                 pc += 4;
@@ -103,34 +113,34 @@ void chip8::emulateCycle()
             else
             pc += 2;
             break;
-        case 0x6000: // 6XNN: sets Vx == NN
+        case 0x6000: // 6XNN: sets VX == NN
             V[opcode & 0x0F00] = opcode & 0x00FF;
             pc += 2;
             break;
-        case 0x7000: // 7XNN: adds NN to Vx
+        case 0x7000: // 7XNN: adds NN to VX
             V[opcode & 0x0F00] += V[opcode & 0x00FF];
             pc += 2;
             break;
         case 0x8000: // check instruction to execute
             switch(opcode & 0x000F)
             {
-                case 0x0000: // 8XY0: sets Vx = Vy
+                case 0x0000: // 8XY0: sets VX = VY
                     V[opcode & 0x0F00] = V[opcode & 0x00F0];
                     pc += 2;
                     break;
-                case 0x0001: // 8XY1: Vx = Vx OR Vy
+                case 0x0001: // 8XY1: VX = VX OR VY
                     V[opcode & 0x0F00] = V[opcode & 0x0F00] | V[opcode & 0x00F0];
                     pc += 2;
                     break;
-                case 0x0002: // 8XY2: Vx = Vx AND Vy
+                case 0x0002: // 8XY2: VX = VX AND VY
                     V[opcode & 0x0F00] = V[opcode & 0x0F00] & V[opcode & 0x00F0];
                     pc += 2;
                     break;
-                case 0x0003: // 8XY3: Vx = Vx XOR Vy
+                case 0x0003: // 8XY3: VX = VX XOR VY
                     V[opcode & 0x0F00] = V[opcode & 0x0F00] ^ V[opcode & 0x00F0];
                     pc += 2;
                     break;
-                case 0x0004: // 8XY4: Vx = Vx + Vy, VF = 1 if sum is greater than 8 bits
+                case 0x0004: // 8XY4: VX = VX + VY, VF = 1 if sum is greater than 8 bits
                     if(V[opcode & 0x0F00] + V[opcode & 0x00F0] > 0x00FF)
                     {
                         V[opcode & 0x0F00] = (V[opcode & 0x0F00] + V[opcode & 0x00F0]) & 0x000F;
@@ -145,7 +155,7 @@ void chip8::emulateCycle()
                         pc += 2;
                         break;
                     }
-                case 0x0005: //8XY5: Vx = Vx - Vy, VF = NOT borrow
+                case 0x0005: //8XY5: VX = VX - VY, VF = NOT borrow
                     if(V[opcode & 0x0F00] - V[opcode & 0x00F0] >= 0)
                     {
                         V[opcode & 0x0F00] = V[opcode & 0x0F00] - V[opcode & 0x00F0];
@@ -160,11 +170,11 @@ void chip8::emulateCycle()
                         pc += 2;
                         break;
                     }
-                case 0x0006: // 8XY6: SHR Vx >> 1, VF = Vx in least significant bit
+                case 0x0006: // 8XY6: SHR VX >> 1, VF = Vx in least significant bit
                     V[15] = (V[opcode & 0x0F00] & 0x1);
                     V[opcode & 0x0F00] >> 1;
                     pc += 2;
-                case 0x0007: // 8XY7: Vx = Vy - Vx, VF = NOT borrow
+                case 0x0007: // 8XY7: VX = VY - VX, VF = NOT borrow
                     if(V[opcode & 0x00F0] - V[opcode & 0x0F00] >= 0)
                     {
                         V[opcode & 0x0F00] = V[opcode & 0x00F0] - V[opcode & 0x0F00];
@@ -179,7 +189,7 @@ void chip8::emulateCycle()
                         pc += 2;
                         break;
                     }
-                case 0x000E: // 8XYE: SHR Vx << 1, VF = Vx in most significant bit
+                case 0x000E: // 8XYE: SHR VX << 1, VF = Vx in most significant bit
                     V[15] = (V[opcode & 0x0F00] & 0x1);
                     V[opcode & 0x0F00] << 1;
                     pc += 2;
@@ -203,16 +213,16 @@ void chip8::emulateCycle()
             ++sp;
             pc = (opcode & 0x0FFF + V[0]);
             break;
-        case 0xC000: // CXNN: sets Vx = random byte AND NN
+        case 0xC000: // CXNN: sets VX = random byte AND NN
             srand(time(NULL));
             V[opcode & 0x0F00] = V[opcode & 0x00FF] && (rand() % 255);
             pc += 2;
             break;
         case 0xD000: // DXYN: graphics
-            unsigned short X = V[opcode & 0x0F00];
-            unsigned short Y = V[opcode & 0x00F0];
-            unsigned short height = V[opcode & 0x000F];
-            unsigned short Ipixel;
+            uint16_t X = V[opcode & 0x0F00];
+            uint16_t Y = V[opcode & 0x00F0];
+            uint16_t height = V[opcode & 0x000F];
+            uint16_t Ipixel;
             V[0xF] = 0;
             for(int yRow = 0; yRow < height; ++yRow)
             {
@@ -288,7 +298,39 @@ void chip8::emulateCycle()
                     pc += 2;
                     break;
                 case 0x0029: // FX29: Set I to the location of sprite for digit VX
-
+                    I = fontBase + (V[opcode & 0x0F00] * 5);
+                    pc += 2;
+                    break;
+                case 0x0033 // FX33: store BCD representation of VX in memory locations I, I+1, and I+2
+                    uint8_t storeValue = V[opcode & 0x0F00];
+                    uint8_t hundreds, tens, ones;
+                    units = storeValue % 10;
+                    storeValue /= 10;
+                    tens = storeValue % 10;
+                    hundreds = storeValue / 10;
+                    memory[I] = hundreds;
+                    memory[I + 1] = tens;
+                    memory[I + 2] = ones;
+                    pc += 2;
+                    break;
+                case 0x0055: // FX55: store registers V0 - VX in memory starting at address I
+                    int y = 0;
+                    for(int i = 0; i < 16; ++i, ++y)
+                    {
+                        memory[I + y] = V[i];
+                    }
+                    pc += 2;
+                    break;
+                case 0x0065: // FX65: fill registers V0 - VX with values starting at address I
+                    int y = 0;
+                    for(int i = 0; i < 16; ++i, ++y)
+                    {
+                        V[i] = memory[I + y];
+                    }
+                    pc += 2;
+                    break;
+                default:
+                    unknownOpcode();
             }
         default:
             unknownOpcode();
