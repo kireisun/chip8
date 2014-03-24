@@ -29,12 +29,6 @@ void chip8::loadGamePath(char *arg)
 
 void chip8::initialize()
 {
-	pc = 0x200; // pc starts at 0x200
-	opcode = 0;     // reset current opcode
-	I = 0;     // reset index register
-	sp = 0;     // reset stack pointer
-	uint8_t* memory_p = &memory[fontBase]; //pointer to memory where the fonts are
-	uint8_t* font_p = &font[0]; //pointer to array containing the fonts
 
 	// load game in memory
 
@@ -54,6 +48,13 @@ void chip8::initialize()
 		printf("\n%s", "Error in loading game in emulated memory. Exiting...");
 		exit(0);
 	}
+
+	pc = 0x200; // pc starts at 0x200
+	opcode = 0;     // reset current opcode
+	I = 0;     // reset index register
+	sp = 0;     // reset stack pointer
+	uint8_t* memory_p = &memory[fontBase]; //pointer to memory where the fonts are
+	uint8_t* font_p = &font[0]; //pointer to array containing the fonts
 
 	// clear register V0 - VF
 

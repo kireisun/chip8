@@ -17,6 +17,10 @@ public:
 	// load the game path in the emulator
 	void loadGamePath(char *arg);
 	char gamePath[MAX_PATH];
+	// glut functions
+	void display();
+	void reshape_display(int w, int h);
+	void setupTexture();
 	uint16_t opcode;
 	uint8_t memory[4096];
 	uint8_t V[16];
@@ -28,6 +32,7 @@ public:
 	uint16_t my_stack[16];
 	uint16_t sp;
 	uint8_t keyboard[16];
+	uint8_t windowModifier;
 };
 
 #endif // CPUEMU_H_INCLUDED
