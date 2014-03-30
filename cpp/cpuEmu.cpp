@@ -7,6 +7,7 @@
 #include <iostream>
 
 #define fontBase 0
+#define BUFFER_OFFSET(offset) ((GLvoid*)(offset))
 
 void chip8::loadGamePath(char *arg)
 {
@@ -92,6 +93,207 @@ void chip8::initialize()
 	memcpy(memory_p, font_p, 5 * 16);
 
 	// reset timers
+}
+
+void chip8::display()
+{
+	// emulation loop
+
+	emulateCycle();
+
+	// if the draw flag is set, eupdate the screen
+	
+	if (drawFlag)
+	{
+		glClear(GL_COLOR_BUFFER_BIT);
+
+		updateTexture();
+
+		glutSwapBuffers();
+
+		drawFlag = false;
+	}
+}
+
+// create a black texture
+
+void chip8::setupTexture()
+{
+	// initialize a black texture with alpha channel = 255
+
+	for (int i = 0; i < sizeof(baseTex); i++)
+	{
+		baseTex[i] = 0;
+	}
+	for (int i = 3; i < sizeof(baseTex); i + 4)
+	{
+		baseTex[i] = 255;
+	}
+	
+	glGenVertexArrays(1, &VAOHandles[0]);
+	glBindVertexArray(VAOHandles[0]);
+
+	glGenBuffers(1, &VBOHandles[0]);
+	glBindBuffer(GL_ARRAY_BUFFER, VBOHandles[0]);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vertex) + sizeof(texCoordinates), NULL, GL_STATIC_DRAW);
+	glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertex), vertex);
+	glBufferSubData(GL_ARRAY_BUFFER, sizeof(vertex), sizeof(texCoord), texCoordinates);
+
+	glGenBuffers(1, elemIndHandles);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elemIndHandles[0]);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(vertexIndex), vertexIndex, GL_STATIC_DRAW);
+
+	glGenTextures(1, &texBufferHandles[0]);
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, texBufferHandles[0]);
+	glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, 64, 32);
+	glTexSubImage2D(GL_TEXTURE_2D, 0,
+		0, 0,
+		64, 32,
+		GL_RGBA, GL_UNSIGNED_BYTE, (GLvoid*)baseTex);
+
+	loadShaderProgram();
+
+	uniformBuffHandles[0] = glGetUniformLocation(pHandle, "tex");
+	glUniform1ui(uniformBuffHandles[0], 0);
+
+	glVertexAttribPointer(vertexPos, 2, GL_FLOAT, GL_FALSE, 0, 0);
+	glEnableVertexAttribArray(vertexPos);
+
+	glVertexAttribPointer(texCoord, 2, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(vertex));
+	glEnableVertexAttribArray(texCoord);
+
+	glBindBuffer(GL_ARRAY_BUFFER, VBOHandles[0]);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elemIndHandles[0]);
+	glBindTexture(GL_TEXTURE_2D, texBufferHandles[0]);
+
+	glBindVertexArray(0);
+
+	glClear(GL_COLOR_BUFFER_BIT);
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindVertexArray(VAOHandles[0]);
+
+	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+	glutSwapBuffers();
+}
+
+void chip8::loadShaderProgram()
+{
+	// vertex and fragment shaders
+
+	char* v = "#version 140\n\
+	in vec4 position;\n\
+	in vec2 texture;\n\
+	out vec2 texture_out\n\
+	void main()\n\
+	{\n\
+		gl_Position = position;\n\
+		texture_out = texture;\n\
+	}\n";
+
+	char* f = "#version 140\n\
+	uniform sampler2D tex;\n\
+	in vec2 texture_out;\n\
+	out vec4 color_out;\n\
+	void main()\n\
+	{\n\
+		color_out = texture2D(tex, texture_out);\n\
+	}";
+
+	const char* vv = v;
+	const char* ff = f;
+
+	// compile shaders
+
+	vHandle = glCreateShader(GL_VERTEX_SHADER);
+	fHandle = glCreateShader(GL_FRAGMENT_SHADER);
+
+	glShaderSource(vHandle, 1, &vv, NULL);
+	glShaderSource(fHandle, 1, &ff, NULL);
+
+	glCompileShader(vHandle);
+	glCompileShader(fHandle);
+
+	try
+	{
+		glGetShaderiv(vHandle, GL_COMPILE_STATUS, &vStatus);
+
+
+		if (GL_TRUE != vStatus)
+		{
+			throw vStatus;
+		}
+
+	}
+	catch (GLint vCompilationError)
+	{
+		printf("Error in compiling vector shader\nLast OpenGL error is %i\nError log is:\n", vCompilationError);
+		GLcharARB vErrorBuffer[512];
+		glGetShaderInfoLog(vHandle, 512, NULL, vErrorBuffer);
+		for (int i = 0; i < 512 && (vErrorBuffer[i] != '\0'); i++)
+		{
+			printf("%c", vErrorBuffer[i]);
+		}
+		printf("\n");
+		exit(0);
+	}
+
+	try
+	{
+		glGetShaderiv(fHandle, GL_COMPILE_STATUS, &fStatus);
+
+		if (GL_TRUE != fStatus)
+		{
+			throw fStatus;
+		}
+	}
+	catch (GLint fCompilationError)
+	{
+		printf("Error in compiling fragment shader\nLast OpenGL error is %i\nError log is:\n", fCompilationError);
+		GLcharARB vErrorBuffer[512];
+		glGetShaderInfoLog(vHandle, 512, NULL, vErrorBuffer);
+		for (int i = 0; i < 512 && (vErrorBuffer[i] != '\0'); i++)
+		{
+			printf("%c", vErrorBuffer[i]);
+		}
+		printf("\n");
+		exit(0);
+	}
+
+	pHandle = glCreateProgram();
+
+	glAttachShader(pHandle, vHandle);
+	glAttachShader(pHandle, fHandle);
+
+	glBindAttribLocation(pHandle, 0, "position");
+	glBindAttribLocation(pHandle, 1, "texture");
+
+	glLinkProgram(pHandle);
+
+	try
+	{
+		glGetProgramiv(pHandle, GL_LINK_STATUS, &pStatus);
+
+		if (GL_TRUE != pStatus)
+		{
+			throw pStatus;
+		}
+	}
+	catch (GLint pCompilationStatus)
+	{
+		printf("Error in the linking phase\nLast OpenGL error is %i\nError log is:\n", pCompilationStatus);
+		GLcharARB pErrorBuffer[512];
+		glGetProgramInfoLog(pHandle, 512, NULL, pErrorBuffer);
+		for (int i = 0; i < 512 && (pErrorBuffer[i] != '\0'); i++)
+		{
+			printf("%c", pErrorBuffer[i]);
+		}
+		printf("\n");
+		exit(0);
+	}
+
+	glUseProgram(pHandle);
 }
 
 
@@ -286,6 +488,7 @@ void chip8::emulateCycle()
 			}
 		}
 		pc += 2;
+		drawFlag = true;
 		break;
 	case 0xE000:
 		switch (opcode & 0x00FF)
