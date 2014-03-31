@@ -3,7 +3,6 @@
 #include "typedefs.h" // typedefs definitions
 #include <cstdio>
 
-
 int main(int argc, char **argv)
 {
 	if (argc < 2)
@@ -29,7 +28,7 @@ int main(int argc, char **argv)
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE);
 	glutInitWindowPosition(320, 320);
-	glutInitWindowSize(myChip8.windowModifier * 64, myChip8.windowModifier * 32);
+	glutInitWindowSize(myChip8.windowModifier * SCREEN_WIDTH, myChip8.windowModifier * SCREEN_HEIGTH);
 	glutCreateWindow("Chip8 Emulator");
 	glewInit();
 	glutDisplayFunc(myChip8.display);

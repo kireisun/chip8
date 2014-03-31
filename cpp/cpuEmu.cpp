@@ -66,14 +66,15 @@ void chip8::initialize()
 
 	// clear display
 
-	for (int i = 0; i < 64; ++i)
+	for (int x = 0; x < SCREEN_WIDTH; ++x)
 	{
-		for (int j = 0; j < 32; ++j)
+		for (int y = 0; y < SCREEN_HEIGTH; ++y)
 		{
-			gfx[i][j] = 0;
+			gfx[x][y][0] = gfx[x][y][1] = gfx[x][y][2] = 0;
+			gfx[x][y][3] = 255;
 		}
 	}
-
+	
 	// clear stack
 
 	for (int i = 0; i < 16; ++i)
@@ -118,18 +119,7 @@ void chip8::display()
 // create a black texture
 
 void chip8::setupTexture()
-{
-	// initialize a black texture with alpha channel = 255
-
-	for (int i = 0; i < sizeof(baseTex); i++)
-	{
-		baseTex[i] = 0;
-	}
-	for (int i = 3; i < sizeof(baseTex); i + 4)
-	{
-		baseTex[i] = 255;
-	}
-	
+{	
 	glGenVertexArrays(1, &VAOHandles[0]);
 	glBindVertexArray(VAOHandles[0]);
 
@@ -146,11 +136,11 @@ void chip8::setupTexture()
 	glGenTextures(1, &texBufferHandles[0]);
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, texBufferHandles[0]);
-	glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, 64, 32);
+	glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, SCREEN_WIDTH, SCREEN_HEIGTH);
 	glTexSubImage2D(GL_TEXTURE_2D, 0,
 		0, 0,
-		64, 32,
-		GL_RGBA, GL_UNSIGNED_BYTE, (GLvoid*)baseTex);
+		SCREEN_WIDTH, SCREEN_HEIGTH,
+		GL_RGBA, GL_UNSIGNED_BYTE, (GLvoid*)gfx);
 
 	loadShaderProgram();
 

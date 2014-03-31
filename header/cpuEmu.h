@@ -11,6 +11,9 @@
 #define numElemIndArray 1
 #define numUnifHandles 1
 
+#define SCREEN_WIDTH 64
+#define SCREEN_HEIGTH 32
+
 class chip8
 {
 public:
@@ -35,7 +38,8 @@ public:
 	GLuint VBOHandles[numVBO];
 	GLuint elemIndHandles[numElemIndArray];
 	GLuint texBufferHandles[numTexBuffers];
-	GLuint baseTex[64 * 32 * 4];
+	GLuint uniformBuffHandles[numUnifHandles];
+	GLuint baseTex[SCREEN_WIDTH * SCREEN_HEIGTH * 4];
 	GLfloat vertex[8] = {
 		-1.0f, -1.0f,
 		 1.0f, -1.0f,
@@ -56,7 +60,6 @@ public:
 	GLuint vHandle;
 	GLuint fHandle;
 	GLint vStatus, fStatus, pStatus;
-	GLuint uniformBuffHandles[numUnifHandles];
 	enum AttribIDs { vertexPos = 0, texCoord = 1 };
 	void loadShaderProgram();
 	uint16_t opcode;
@@ -64,7 +67,7 @@ public:
 	uint8_t V[16];
 	uint16_t I;
 	uint16_t pc;
-	uint8_t gfx[64][32];
+	uint8_t gfx[SCREEN_WIDTH][SCREEN_HEIGTH][4];
 	uint8_t delay_timer;
 	uint8_t sound_timer;
 	uint16_t my_stack[16];
